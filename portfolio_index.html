@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════╗
+║  ⚡ MJM::DEV · v2025.04                                      ║
+║                                                              ║
+║  Auteure : Marie-Jeanne Martinat                             ║
+║  Rôle    : Ingénieure Géomaticienne & Développeuse           ║
+║  Coords  : 46°55'31"N  2°25'51"E  (Saint-Saturnin, 18)      ║
+║                                                              ║
+║  Stack   : R/Shiny · PostGIS · Geoserver · Leaflet           ║
+║            QGIS · FME · Python · JavaScript · SQL            ║
+║                                                              ║
+║  Projets : kartOLD · OLD50m · Observatoire territorial       ║
+║  Domaine : Risques naturels · Phénomènes météo convectifs    ║
+║                                                              ║
+║  Contact : martinat.mj@gmail.com · 06.44.83.83.17            ║
+║                                                              ║
+║  Easter egg : try the Konami code ↑↑↓↓←→←→BA               ║
+╚══════════════════════════════════════════════════════════════╝
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Marie-Jeanne Martinat · Ingénieure Géomaticienne-Développeuse">
+<meta name="generator" content="MJM::HAND-CODED · No framework · Pure HTML/CSS/JS">
+<meta name="mjm-signature" content="kartOLD·OLD50m·RShiny·PostGIS·Leaflet·Geoserver · ⚡ 46.9253°N,2.4308°E">
+<title>Marie-Jeanne Martinat — Ingénieure Géomaticienne</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ⚡ MJM::DESIGN-SYSTEM · v2025.04 · kartOLD · OLD50m · storm-ui */
+    --mjm-author: "Marie-Jeanne Martinat";
+    --mjm-coords: "46.9253N 2.4308E";
+    --mjm: #4d4a4d;   /* MJM — 4D=M 4A=J 4D=M */
+    --storm: #0a0e1a;
+    --deep: #0d1524;
+    --layer: #111e35;
+    --glass: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --electric: #f0b429;
+    --lightning: #ffd166;
+    --cyan: #38bdf8;
+    --muted: #64748b;
+    --text: #e2e8f0;
+    --soft: #94a3b8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--storm);
+    color: var(--text);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 12px;
+    height: 12px;
+    background: var(--electric);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease, opacity 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--electric);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.25s ease;
+    opacity: 0.5;
+  }
+
+  /* Atmospheric background */
+  .bg-atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bg-atmosphere::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(56,189,248,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(240,180,41,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 50% 50%, rgba(15,30,60,0.8) 0%, transparent 100%);
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: grid-drift 40s linear infinite;
+    border-color: var(--mjm);
+  }
+  @keyframes grid-drift {
+    from { transform: translate(0,0); }
+    to { transform: translate(60px,60px); }
+  }
+
+  /* Lightning flash */
+  .lightning-bolt {
+    position: absolute;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--electric), transparent);
+    opacity: 0;
+    animation: bolt 8s ease-in-out infinite;
+  }
+  @keyframes bolt {
+    0%, 90%, 100% { opacity: 0; }
+    92% { opacity: 0.6; }
+    94% { opacity: 0; }
+    96% { opacity: 0.4; }
+    98% { opacity: 0; }
+  }
+
+  /* Layout */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* Nav */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(10,14,26,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--electric);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--soft);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--electric); }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 80px;
+  }
+  .hero-content {
+    max-width: 800px;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--electric);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.2s forwards;
+  }
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--electric);
+  }
+  .hero-name {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.4s forwards;
+  }
+  .hero-name span {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(240,180,41,0.4);
+  }
+  .hero-title {
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--soft);
+    margin-bottom: 32px;
+    line-height: 1.5;
+    max-width: 520px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.6s forwards;
+  }
+  .hero-title strong { color: var(--cyan); font-weight: 500; }
+  .hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.8s forwards;
+  }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--soft);
+    background: var(--glass);
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .tag:hover { border-color: var(--electric); color: var(--electric); }
+  .tag.accent { border-color: rgba(240,180,41,0.3); color: var(--electric); }
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fade-up 0.8s ease 1s forwards;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--electric);
+    color: var(--storm);
+    padding: 12px 28px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--lightning); transform: translateY(-1px); }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    color: var(--soft);
+    padding: 12px 28px;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--electric); color: var(--electric); }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fade-in 1s ease 2s forwards;
+  }
+  .scroll-hint span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(180deg, var(--electric), transparent);
+    animation: scroll-pulse 2s ease-in-out infinite;
+  }
+  @keyframes scroll-pulse {
+    0%, 100% { opacity: 0.2; transform: scaleY(1); }
+    50% { opacity: 0.8; transform: scaleY(1.2); }
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Sections */
+  section {
+    padding: 120px 0;
+    position: relative;
+    z-index: 1;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--electric);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    max-width: 60px;
+    height: 1px;
+    background: var(--electric);
+    opacity: 0.4;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 300;
+    line-height: 1.1;
+    margin-bottom: 60px;
+    letter-spacing: -0.02em;
+  }
+
+  /* About */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .about-text p {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--soft);
+    margin-bottom: 20px;
+  }
+  .about-text p strong { color: var(--text); font-weight: 500; }
+  .about-text .highlight {
+    border-left: 2px solid var(--electric);
+    padding-left: 20px;
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 32px 0;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+  .stat-card {
+    background: var(--layer);
+    border: 1px solid var(--border);
+    padding: 28px 24px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(240,180,41,0.3); }
+  .stat-num {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--electric);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--soft);
+    line-height: 1.4;
+  }
+
+  /* Stack */
+  .stack-section { background: var(--deep); }
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .stack-group {
+    background: var(--layer);
+    border: 1px solid var(--border);
+    padding: 32px 28px;
+  }
+  .stack-group-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--electric);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stack-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stack-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .stack-bar-wrap {
+    width: 80px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .stack-bar {
+    height: 100%;
+    background: var(--electric);
+    border-radius: 1px;
+    transform-origin: left;
+    animation: bar-grow 1.2s cubic-bezier(0.4,0,0.2,1) forwards;
+    transform: scaleX(0);
+  }
+  @keyframes bar-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  /* Projects */
+  .projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .project-card {
+    background: var(--layer);
+    border: 1px solid var(--border);
+    padding: 36px 40px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: start;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .project-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--electric);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.3s ease;
+  }
+  .project-card:hover { border-color: rgba(240,180,41,0.2); }
+  .project-card:hover::before { transform: scaleY(1); }
+  .project-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+  .project-name {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+  .project-desc {
+    font-size: 15px;
+    color: var(--soft);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    max-width: 560px;
+  }
+  .project-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .project-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.15);
+    color: var(--cyan);
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+  .project-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 100px;
+    align-items: flex-end;
+  }
+  .project-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--soft);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .project-link:hover { color: var(--electric); }
+
+  /* Experience */
+  .exp-list { display: flex; flex-direction: column; gap: 0; }
+  .exp-item {
+    border-left: 1px solid var(--border);
+    padding-left: 32px;
+    padding-bottom: 48px;
+    position: relative;
+  }
+  .exp-item::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 6px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--storm);
+    border: 2px solid var(--electric);
+    transition: background 0.2s;
+  }
+  .exp-item:hover::before { background: var(--electric); }
+  .exp-period {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--electric);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .exp-role {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .exp-org {
+    font-size: 14px;
+    color: var(--soft);
+    margin-bottom: 16px;
+  }
+  .exp-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .exp-points li {
+    font-size: 14px;
+    color: var(--soft);
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .exp-points li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--electric);
+    font-size: 12px;
+  }
+
+  /* Contact */
+  .contact-section {
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+  }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .contact-headline {
+    font-family: 'Fraunces', serif;
+    font-size: 52px;
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  .contact-headline em {
+    font-style: italic;
+    color: var(--electric);
+  }
+  .contact-sub {
+    font-size: 15px;
+    color: var(--soft);
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .contact-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    transition: padding-left 0.2s;
+  }
+  .contact-link:hover { padding-left: 12px; }
+  .contact-link-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .contact-link-value {
+    font-size: 15px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .contact-link:hover .contact-link-value { color: var(--electric); }
+
+  /* Footer */
+  footer {
+    padding: 32px;
+    border-top: 1px solid #4d4a4d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  footer span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+    .stack-grid { grid-template-columns: 1fr; }
+    .project-card { grid-template-columns: 1fr; }
+    .project-links { flex-direction: row; align-items: flex-start; }
+    nav { padding: 16px 20px; }
+    .nav-links { gap: 20px; }
+    .container { padding: 0 20px; }
+  }
+
+  /* Intersection observer animation */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Atmospheric background -->
+<div class="bg-atmosphere">
+  <div class="bg-grid"></div>
+  <div class="lightning-bolt" style="left:15%;height:200px;top:10%;animation-delay:0s"></div>
+  <div class="lightning-bolt" style="left:65%;height:150px;top:30%;animation-delay:3s"></div>
+  <div class="lightning-bolt" style="left:85%;height:300px;top:5%;animation-delay:6s"></div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">MJ Martinat</div>
+  <ul class="nav-links">
+    <li><a href="#about">Profil</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#projects">Projets</a></li>
+    <li><a href="#experience">Parcours</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-tag">Ingénieure Géomaticienne & Développeuse</div>
+      <h1 class="hero-name">Marie-Jeanne<br><span>Martinat</span></h1>
+      <p class="hero-title">
+        Spécialisée en <strong>cartographie des risques naturels</strong>, développement d'outils SIG et visualisation de données spatiales.<br>
+        Master SIGMA · DDT Drôme · DREAL BFC
+      </p>
+      <div class="hero-tags">
+        <span class="tag accent">⚡ Risques météo</span>
+        <span class="tag accent">🌊 Inondations</span>
+        <span class="tag accent">🔥 Feux de forêt</span>
+        <span class="tag">QGIS · PostGIS · Geoserver</span>
+        <span class="tag">R / RShiny</span>
+        <span class="tag">Leaflet · WebMapping</span>
+        <span class="tag">FME · Python</span>
+      </div>
+      <div class="hero-cta">
+        <a href="#projects" class="btn-primary">Voir les projets →</a>
+        <a href="mailto:martinat.mj@gmail.com" class="btn-ghost">✉ Me contacter</a>
+        <a href="https://linkedin.com/in/mariejeanne-martinat-b58577215" class="btn-ghost" target="_blank">LinkedIn</a>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">01 — Profil</div>
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p>
+          Ingénieure géomaticienne-programmeuse avec <strong>3 ans d'expérience</strong> dans des services de l'État (DDT, DREAL), je combine une expertise solide en analyse spatiale et une vraie capacité de développement applicatif.
+        </p>
+        <div class="highlight">
+          Ce qui me différencie : je ne me contente pas de produire des cartes. Je conçois et développe des <strong>outils complets</strong> — interfaces interactives, pipelines de données automatisés, observatoires territoriaux — que d'autres peuvent utiliser.
+        </div>
+        <p>
+          Mon attrait pour les <strong>phénomènes naturels extrêmes</strong> — orages convectifs, tornades, feux de forêt — me pousse à vouloir appliquer ces compétences à la prévision et à la gestion des risques météorologiques.
+        </p>
+        <p>
+          Langues : Français (natif) · Anglais (professionnel) · Allemand (notions)
+        </p>
+      </div>
+      <div class="stat-grid reveal">
+        <div class="stat-card">
+          <div class="stat-num">3+</div>
+          <div class="stat-label">ans d'expérience en géomatique terrain</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">5+</div>
+          <div class="stat-label">outils SIG développés et déployés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">DDT<br>DREAL</div>
+          <div class="stat-label" style="font-size:12px">Expérience double : DDT Drôme · DREAL BFC</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">M2</div>
+          <div class="stat-label">Master SIGMA — Université Jean Jaurès II</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stack -->
+<section id="stack" class="stack-section">
+  <div class="container">
+    <div class="section-label">02 — Stack technique</div>
+    <h2 class="section-title reveal">Outils & technologies</h2>
+    <div class="stack-grid reveal">
+      <div class="stack-group">
+        <div class="stack-group-title">SIG & Géomatique</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <span class="stack-name">QGIS</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="--w:0.95;animation-delay:0.1s;width:95%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">ArcGIS</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:80%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">PostGIS / PostgreSQL</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:90%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Geoserver</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:85%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Leaflet / WebMapping</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:82%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">FME</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:75%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stack-group">
+        <div class="stack-group-title">Développement</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <span class="stack-name">R / RShiny</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:92%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">SQL / SLD</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:90%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">JavaScript</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:75%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">HTML / CSS</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:80%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Python</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:65%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">GitHub / GitLab</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:80%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stack-group">
+        <div class="stack-group-title">Analyse & Visualisation</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <span class="stack-name">Analyse spatiale</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:90%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Statistiques (ANOVA…)</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:78%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Photogrammétrie 3D</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:70%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Dataviz / Cartothèse</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:88%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">Adobe Illustrator</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:72%"></div></div>
+          </div>
+          <div class="stack-item">
+            <span class="stack-name">SketchUp / 3D</span>
+            <div class="stack-bar-wrap"><div class="stack-bar" style="width:65%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Projects -->
+<section id="projects">
+  <div class="container">
+    <div class="section-label">03 — Réalisations</div>
+    <h2 class="section-title reveal">Projets développés</h2>
+    <div class="projects-list">
+
+      <div class="project-card reveal">
+        <div>
+          <div class="project-num">/ 01</div>
+          <h3 class="project-name">cartOLD</h3>
+          <p class="project-desc">
+            Application cartographique interactive développée à la DDT de la Drôme pour la visualisation et l'analyse des données de l'outil OLD50m (Occupation des sols et des limites). Interface web complète avec requêtes spatiales, filtres dynamiques et exports automatisés.
+          </p>
+          <div class="project-stack">
+            <span class="project-tag">Leaflet</span>
+            <span class="project-tag">PostGIS</span>
+            <span class="project-tag">Geoserver</span>
+            <span class="project-tag">JavaScript</span>
+            <span class="project-tag">SQL</span>
+            <span class="project-tag">DDT Drôme (26)</span>
+          </div>
+        </div>
+        <div class="project-links">
+          <span class="project-link">Projet interne DDT</span>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div>
+          <div class="project-num">/ 02</div>
+          <h3 class="project-name">OLD50m</h3>
+          <p class="project-desc">
+            Co-création d'un outil de mesure de l'occupation des sols à 50 mètres de résolution. Méthodologie originale, pipeline de traitement automatisé, qualification des données et mise à disposition via WMS/WFS. Outil opérationnel déployé au sein de la DDT.
+          </p>
+          <div class="project-stack">
+            <span class="project-tag">QGIS</span>
+            <span class="project-tag">FME</span>
+            <span class="project-tag">Python</span>
+            <span class="project-tag">PostgreSQL</span>
+            <span class="project-tag">WMS/WFS</span>
+            <span class="project-tag">DDT Drôme (26)</span>
+          </div>
+        </div>
+        <div class="project-links">
+          <span class="project-link">Projet interne DDT</span>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div>
+          <div class="project-num">/ 03</div>
+          <h3 class="project-name">Observatoire du territoire drômois</h3>
+          <p class="project-desc">
+            Tableau de bord interactif complet développé sous R/RShiny pour le suivi des indicateurs territoriaux du département de la Drôme. Visualisation de données multicritères, cartographies dynamiques, exports PDF/Excel, interface multi-utilisateurs déployée en production.
+          </p>
+          <div class="project-stack">
+            <span class="project-tag">R / RShiny</span>
+            <span class="project-tag">Leaflet</span>
+            <span class="project-tag">PostGIS</span>
+            <span class="project-tag">Shiny Server</span>
+            <span class="project-tag">RMarkdown</span>
+            <span class="project-tag">DDT Drôme (26)</span>
+          </div>
+        </div>
+        <div class="project-links">
+          <span class="project-link">Déployé en production</span>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div>
+          <div class="project-num">/ 04</div>
+          <h3 class="project-name">Priorisation PPRN — ASTER'X</h3>
+          <p class="project-desc">
+            Développement d'une méthodologie de priorisation de l'élaboration et révision des Plans de Prévention des Risques Naturels (PPRN) pour la DREAL Bourgogne-Franche-Comté. Analyse multi-critères spatiale, mise à jour des cartographies d'aléas, croisement avec les enjeux territoriaux.
+          </p>
+          <div class="project-stack">
+            <span class="project-tag">QGIS</span>
+            <span class="project-tag">ArcGIS</span>
+            <span class="project-tag">Analyse multi-critères</span>
+            <span class="project-tag">PPRN</span>
+            <span class="project-tag">DREAL BFC</span>
+          </div>
+        </div>
+        <div class="project-links">
+          <span class="project-link">DREAL BFC — Besançon</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Experience -->
+<section id="experience" style="background:var(--deep);">
+  <div class="container">
+    <div class="section-label">04 — Parcours</div>
+    <h2 class="section-title reveal">Expériences professionnelles</h2>
+    <div class="exp-list reveal">
+      <div class="exp-item">
+        <div class="exp-period">2023 — 2025</div>
+        <div class="exp-role">Ingénieure Géomaticienne-Programmeuse</div>
+        <div class="exp-org">DDT de la Drôme — Valence (26)</div>
+        <ul class="exp-points">
+          <li>Co-création de l'outil OLD50m : pipeline complet d'analyse de l'occupation des sols à 50m de résolution</li>
+          <li>Développement de cartOLD : application WebGIS interactive (Leaflet, Geoserver, PostGIS)</li>
+          <li>Administration de bases de données spatiales PostgreSQL/PostGIS</li>
+          <li>Mise en place de flux WMS/WFS et services géographiques</li>
+        </ul>
+      </div>
+      <div class="exp-item">
+        <div class="exp-period">2022 — 2023</div>
+        <div class="exp-role">Alternante & Vacataire en Géomatique</div>
+        <div class="exp-org">DDT de la Drôme — Valence (26)</div>
+        <ul class="exp-points">
+          <li>Création d'un observatoire territorial complet sous R/RShiny, déployé en production</li>
+          <li>Cartographies thématiques multicritères et analyses spatiales</li>
+          <li>Formation des utilisateurs aux outils SIG internes</li>
+        </ul>
+      </div>
+      <div class="exp-item">
+        <div class="exp-period">2021 — 2022</div>
+        <div class="exp-role">Stagiaire — Géomaticien Risques Naturels</div>
+        <div class="exp-org">DREAL Bourgogne-Franche-Comté — Besançon (25)</div>
+        <ul class="exp-points">
+          <li>Réalisation d'une méthodologie de priorisation PPRN à l'échelle régionale</li>
+          <li>Mise à jour des cartographies d'aléas naturels (ASTER'X) : inondations, mouvements de terrain</li>
+          <li>Croisement spatial données d'aléas / enjeux territoriaux sous QGIS/ArcGIS</li>
+        </ul>
+      </div>
+      <div class="exp-item">
+        <div class="exp-period">2018 — 2019</div>
+        <div class="exp-role">Stagiaire — Technicien environnemental</div>
+        <div class="exp-org">Fédération des Chasseurs de Haute-Savoie</div>
+        <ul class="exp-points">
+          <li>Suivi du Lynx par piégeage photographique (projet européen interdépartemental)</li>
+          <li>Cartographies des parcours de suivi et des mises en défens</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section id="contact" class="contact-section">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="reveal">
+        <div class="section-label">05 — Contact</div>
+        <h2 class="contact-headline">Travaillons<br>ensemble <em>sur</em><br>les risques.</h2>
+        <p class="contact-sub">
+          À la recherche d'un poste d'ingénieure géomaticienne-développeuse dans le domaine des risques naturels et météorologiques. Disponible pour un échange dès maintenant.
+        </p>
+      </div>
+      <div class="contact-links reveal">
+        <a href="mailto:martinat.mj@gmail.com" class="contact-link">
+          <span class="contact-link-label">Email</span>
+          <span class="contact-link-value">martinat.mj@gmail.com →</span>
+        </a>
+        <a href="https://linkedin.com/in/mariejeanne-martinat-b58577215" class="contact-link" target="_blank">
+          <span class="contact-link-label">LinkedIn</span>
+          <span class="contact-link-value">marie-jeanne-martinat →</span>
+        </a>
+        <a href="https://github.com/mj-martinat" class="contact-link" target="_blank">
+          <span class="contact-link-label">GitHub</span>
+          <span class="contact-link-value">mj-martinat →</span>
+        </a>
+        <div class="contact-link" style="cursor:default">
+          <span class="contact-link-label">Téléphone</span>
+          <span class="contact-link-value">06 44 83 83 17</span>
+        </div>
+        <div class="contact-link" style="cursor:default">
+          <span class="contact-link-label">Localisation</span>
+          <span class="contact-link-value">Saint-Saturnin (18) — Mobile</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2025 Marie-Jeanne Martinat</span>
+  <span>Ingénieure Géomaticienne · Risques Naturels & Météorologiques</span>
+</footer>
+
+<!-- MJM::SIGNATURE · coords:46.9253,2.4308 · stack:R∴PostGIS∴Leaflet∴Geoserver · ⛈ -->
+<div aria-hidden="true" data-mjm="⚡" data-coords="46.9253°N,2.4308°E" data-stack="R·PostGIS·Geoserver·Leaflet·QGIS·FME·Python" data-projects="kartOLD·OLD50m·Observatoire" style="display:none">MJM::DEV</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚡ MJM::SIGNATURE — v2025.04
+// Marie-Jeanne Martinat · Ingénieure Géomaticienne-Dev
+// coords: 46.9253°N, 2.4308°E · Saint-Saturnin (18)
+// stack: R∴Shiny · PostGIS∴Geoserver · Leaflet∴∞
+// contact: martinat.mj@gmail.com
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Console signature — styled dev card
+const mjm = [
+  '%c',
+  '%c ⚡ MJM SIGNATURE  ',
+  '%c',
+  '%c   Marie-Jeanne Martinat   ',
+  '%c   Ingénieure Géomaticienne & Dev   ',
+  '%c',
+  '%c   coords  %c 46.9253°N, 2.4308°E   ',
+  '%c   stack   %c R · PostGIS · Leaflet · Python   ',
+  '%c   mail    %c martinat.mj@gmail.com   ',
+  '%c   focus   %c Risques naturels & météo ⛈   ',
+  '%c',
+].join('\n');
+
+const styles = [
+  'padding:4px 0',
+  'background:#f0b429;color:#0a0e1a;font-weight:bold;padding:6px 16px;font-size:13px;letter-spacing:0.1em',
+  'padding:2px 0',
+  'background:#0d1524;color:#e2e8f0;padding:4px 16px;font-size:12px;font-weight:500',
+  'background:#0d1524;color:#94a3b8;padding:2px 16px;font-size:11px',
+  'padding:2px 0',
+  'background:#111e35;color:#64748b;padding:3px 8px 3px 16px;font-size:11px',
+  'background:#111e35;color:#38bdf8;padding:3px 16px 3px 0;font-size:11px',
+  'background:#111e35;color:#64748b;padding:3px 8px 3px 16px;font-size:11px',
+  'background:#111e35;color:#38bdf8;padding:3px 16px 3px 0;font-size:11px',
+  'background:#111e35;color:#64748b;padding:3px 8px 3px 16px;font-size:11px',
+  'background:#111e35;color:#38bdf8;padding:3px 16px 3px 0;font-size:11px',
+  'background:#111e35;color:#64748b;padding:3px 8px 3px 16px;font-size:11px',
+  'background:#111e35;color:#f0b429;padding:3px 16px 3px 0;font-size:11px',
+  'padding:4px 0',
+];
+console.log(mjm, ...styles);
+console.log('%c Ψ MJM::0x4d4a4d · kartOLD · OLD50m · RShiny · PostGIS ', 'color:#f0b429;font-family:monospace;font-size:10px');
+
+// Konami code Easter egg (↑↑↓↓←→←→BA)
+const mjmKonami = [38,38,40,40,37,39,37,39,66,65];
+let mjmSeq = [];
+document.addEventListener('keydown', e => {
+  mjmSeq.push(e.keyCode);
+  mjmSeq = mjmSeq.slice(-10);
+  if (mjmSeq.join(',') === mjmKonami.join(',')) {
+    // Easter egg : coordonnées en grille cartographique
+    const egg = document.createElement('div');
+    egg.id = 'mjm-egg';
+    egg.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(10,14,26,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px)">
+        <div style="text-align:center;font-family:'JetBrains Mono',monospace;color:#f0b429">
+          <div style="font-size:48px;margin-bottom:16px">⚡</div>
+          <div style="font-size:13px;letter-spacing:0.2em;margin-bottom:8px;color:#64748b">MJM :: EASTER EGG UNLOCKED</div>
+          <div style="font-size:22px;font-weight:bold;letter-spacing:0.05em;margin-bottom:24px">Marie-Jeanne Martinat</div>
+          <div style="font-size:11px;color:#38bdf8;letter-spacing:0.1em;line-height:2.2">
+            N 46° 55' 31.08" · E 002° 25' 50.88"<br>
+            kartOLD · OLD50m · Observatoire · PPRN<br>
+            QGIS · PostGIS · R/Shiny · Geoserver · Leaflet<br>
+            <span style="color:#f0b429">⛈ Risques naturels & météo convective ⛈</span>
+          </div>
+          <div style="margin-top:32px;font-size:10px;color:#334155">cliquer pour fermer</div>
+        </div>
+      </div>`;
+    document.body.appendChild(egg);
+    document.getElementById('mjm-egg').addEventListener('click', () => egg.remove());
+  }
+});
+
+// Custom cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animCursor() {
+  cursor.style.left = mx - 6 + 'px';
+  cursor.style.top = my - 6 + 'px';
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx - 18 + 'px';
+  ring.style.top = ry - 18 + 'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+document.querySelectorAll('a, button, .project-card, .stat-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.style.transform = 'scale(2)'; ring.style.transform = 'scale(1.5)'; });
+  el.addEventListener('mouseleave', () => { cursor.style.transform = 'scale(1)'; ring.style.transform = 'scale(1)'; });
+});
+
+// Intersection observer
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
