@@ -4,7 +4,7 @@
 
 Portfolio de Marie-Jeanne Martinat, ingénieure géomaticienne-programmeuse : applications cartographiques, données territoriales et projets environnementaux.
 
-Version en ligne : [mjmartinat-dev.github.io/Portefolio](https://mjmartinat-dev.github.io/Portefolio/)
+Version en ligne : [mjmartinat-dev.github.io/Portefolio/](https://mjmartinat-dev.github.io/Portefolio/)
 
 ## Réalisations
 
